@@ -3,7 +3,7 @@ local dot = require "dot"
 local CFG = {id = 0}
 local cfg_mt = {__index=cfg_mt}
 
-function CFG.new(ir, env)
+function CFG.new(ir, closure)
 	local cfg = setmetatable({}, cfg_mt)
 	cfg.parents = {}
 	cfg.child1 = nil
@@ -11,6 +11,7 @@ function CFG.new(ir, env)
 	cfg.ir = ir
 	cfg.id = CFG.id
 	CFG.id = CFG.id + 1
+	cfg.closure = closure
 	return cfg
 end
 
@@ -48,9 +49,28 @@ end
 
 function CFG.first_pass(func, jumps)
 	-- annotate instructions that are jumped to
-	for _,inst in ipairs(func.instructions) do
+	local prev, current, root
+	for _,stmt in ipairs(func.instructions) do
+		if not root then
+			root = CFG.new(stmt, func)
+			current = root
+		else
+			current = CFG.new(stmt)
+		end
 		
+		if prev then
+			table.insert(current.parents, prev)
+			prev.child1 = current
+		end
+		
+		if stmt.op == "LABEL" then
+			jumps[stmt.name] = current
+		end
+		
+		prev = current
 	end
+	
+	return root
 end
 
 local function create_cfg(func)
@@ -60,3 +80,5 @@ end
 -- a few transformation rules
 
 -- LT/EQ/LE/TEST
+
+return CFG

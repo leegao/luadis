@@ -147,16 +147,7 @@ local ARGS = {
 	{A, B}
 }
 
-local function instruction(int)
-	-- 6 8 9 9
-	local op = bit.band(int, 0x3f)+1
-	local A  = bit.rshift(bit.band(int, 0x3fc0), 6)
-	local C  = bit.rshift(bit.band(int, 0x7fc000), 6+8)
-	local B  = bit.rshift(bit.band(int, 0xff800000), 6+8+9)
-	local Bx = bit.lshift(B, 9)+C
-	local sBx = Bx - 131071
-	local this = {A = A, B = B, C = C, Bx = Bx, sBx = sBx}
-	local inst = setmetatable({op = OPCODES[op]}, {__tostring = function(self)
+local OPMT = {__tostring = function(self)
 		local r = {"A", "B", "C", "Bx", "sBx"}
 		local r2 = {}
 		for _,v in ipairs(r) do
@@ -167,7 +158,18 @@ local function instruction(int)
 			end
 		end
 		return string.format("%s(%s)",self.op, table.concat(r2, ', '))
-	end})
+	end}
+
+local function instruction(int)
+	-- 6 8 9 9
+	local op = bit.band(int, 0x3f)+1
+	local A  = bit.rshift(bit.band(int, 0x3fc0), 6)
+	local C  = bit.rshift(bit.band(int, 0x7fc000), 6+8)
+	local B  = bit.rshift(bit.band(int, 0xff800000), 6+8+9)
+	local Bx = bit.lshift(B, 9)+C
+	local sBx = Bx - 131071
+	local this = {A = A, B = B, C = C, Bx = Bx, sBx = sBx}
+	local inst = setmetatable({op = OPCODES[op]}, OPMT)
 	for _,v in ipairs(ARGS[op]) do
 		inst[v] = this[v]
 	end
@@ -175,4 +177,4 @@ local function instruction(int)
 	return inst
 end
 
-return {instruction = instruction, OPCODES = OPCODES, ARGS = ARGS}
+return {instruction = instruction, OPCODES = OPCODES, ARGS = ARGS, OPMT = OPMT}

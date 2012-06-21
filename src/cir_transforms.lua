@@ -1,12 +1,13 @@
 local utils = require "utils"
 local ir = require "ir"
+local opcode = require "opcode"
 
-local cir_transforms = {}
+local cir = {}
 
 -- replace instances of lt/le/eq/testset with cjumps
 -- first need to replace all tests with testsets
 
-function cir_transforms.replace_tests(func)
+function cir.replace_tests(func)
 	-- for now let's create a new copy of func
 	local func_copy = utils.copy(func)
 	
@@ -19,7 +20,7 @@ function cir_transforms.replace_tests(func)
 	end
 	
 	for i,f in ipairs(func.funcs) do
-		func_copy.funcs[i] = cir_transforms.replace_tests(f)
+		func_copy.funcs[i] = cir.replace_tests(f)
 	end
 	
 	return func_copy
@@ -27,7 +28,7 @@ end
 
 -- next, we need to augment the instruction set with ir.labels
 
-function cir_transforms.add_label(func)
+function cir.add_label(func)
 	local func_copy = utils.copy(func)
 	local jump_target = {}
 	for pc,op in ipairs(func_copy.instructions) do
@@ -75,12 +76,62 @@ function cir_transforms.add_label(func)
 	end
 	
 	for _,f in ipairs(func.funcs) do
-		func_copy.funcs[_] = cir_transforms.add_label(f)
+		func_copy.funcs[_] = cir.add_label(f)
 	end
 	
 	return func_copy
 end
 
+-- used after adding labels
+function cir.add_cjumps(funcs)
+	-- transform all sequences of the form cond; jmp into a single cjmp
+	local cfuncs = utils.copy(funcs)
+	local instructions = {}
+	local skip = false
+	for pc,op in ipairs(cfuncs.instructions) do
+		-- check if cond;jmp
+		if skip then
+			skip = false
+		else
+			if utils.find({'EQ', 'LT', 'LE', 'TEST', 'TESTSET'}, op.op) and cfuncs.instructions[pc+1].op == "JMP" then
+				table.insert(instructions, ir.cjmp(op.op, op.A, op.B, op.C, cfuncs.instructions[pc+1].to))
+				skip = true
+			else
+				table.insert(instructions, op)
+			end
+		end
+	end
+	cfuncs.instructions = instructions
+	for _,f in ipairs(funcs.funcs) do
+		cfuncs.funcs[_] = cir.cjumps(f)
+	end
+	
+	return cfuncs
+end
+
+function cir.replace_loadbool(funcs)
+	-- transform all sequences of the form loadbool(... C = 1) by adding a jmp afterwards
+	local cfuncs = utils.copy(funcs)
+	local instructions = {}
+	for pc,op in ipairs(cfuncs.instructions) do
+		table.insert(instructions, op)
+		if op.op == "LOADBOOL" and op.C ~= 0 then
+			local jmp = setmetatable({op = "JMP"}, opcode.OPMT)
+			jmp.to = op.to
+			op.to = nil
+			op.C = nil
+			table.insert(instructions, jmp)
+		elseif op.op == "LOADBOOL" then
+			op.C = nil
+		end
+	end
+	cfuncs.instructions = instructions
+	for _,f in ipairs(funcs.funcs) do
+		cfuncs.funcs[_] = cir.replace_loadbool(f)
+	end
+	
+	return cfuncs
+end
 
 chunk = require "chunk"
 reader = require "reader"
@@ -89,9 +140,13 @@ local ctx = reader.new_ctx(string.dump(loadfile 'test.lua'))
 chunk.header(ctx)
 local func = chunk.func(ctx)
 
-func = cir_transforms.replace_tests(func)
-func = cir_transforms.add_label(func)
+func = cir.replace_tests(func)
+func = cir.add_label(func)
+func = cir.add_cjumps(func)
+func = cir.replace_loadbool(func)
+
+
 
 for i,v in ipairs(func.instructions) do print(i,v) end
 
-return cir_transforms
+return cir
