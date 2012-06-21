@@ -101,6 +101,10 @@ local OPCODES = {
 	"VARARG"        --R(A), R(A+1), ..., R(A+B-1) = vararg
 }
 
+for v,k in ipairs(OPCODES) do
+	OPCODES[k] = v
+end
+
 local A, B, C, Bx, sBx = 'A', 'B', 'C', 'Bx', 'sBx'
 local ARGS = {
 	{A, B},
@@ -156,8 +160,10 @@ local function instruction(int)
 		local r = {"A", "B", "C", "Bx", "sBx"}
 		local r2 = {}
 		for _,v in ipairs(r) do
-			if self[v] then
-				table.insert(r2,string.format("%s=0x%x",v,self[v]))
+			if v == "sBx" and self.to then
+				table.insert(r2,string.format("to=%s",self.to))
+			elseif self[v] then
+				table.insert(r2,string.format("%s=%s",v,self[v]))
 			end
 		end
 		return string.format("%s(%s)",self.op, table.concat(r2, ', '))

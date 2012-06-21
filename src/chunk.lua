@@ -1,7 +1,7 @@
 local opcode = require "opcode"
 local reader  = require "reader"
 
-local function chunk_header(ctx)
+local function header(ctx)
 	assert(ctx:int()  == 0x61754c1b) -- ESC. Lua
 	assert(ctx:byte() == 0x51) -- version
 	assert(ctx:byte() == 0) -- format version
@@ -45,14 +45,7 @@ local function func(ctx)
 	local stack_size   = ctx:byte()
 	
 	local instructions = generic_list(ctx, function(ctx) return opcode.instruction(reader.int(ctx)) end)
-	for i,v in ipairs(instructions) do
-		print(v)
-	end
-	print()
-	
 	local constants    = generic_list(ctx, constant)
-	
-	--print(ctx:int(), ctx:int())
 	
 	local protos       = generic_list(ctx, func)
 	
@@ -70,7 +63,7 @@ local function func(ctx)
 		stack_size   = stack_size,
 		instructions = instructions,
 		constants    = constants,
-		proto        = proto,
+		funcs        = protos,
 		line_num     = line_num,
 		locals       = locals,
 		upvalues     = upvalues
@@ -78,10 +71,12 @@ local function func(ctx)
 end
 
 
-local ctx = reader.new_ctx(string.dump(loadfile 'test.lua'))
+--local ctx = reader.new_ctx(string.dump(loadfile 'test.lua'))
+--
+--header(ctx)
+--
+--for i,v in ipairs(func(ctx).instructions) do
+--	print(i, v)
+--end
 
-chunk_header(ctx)
-
-func(ctx)
-
-return reader
+return {header=header, func=func}
