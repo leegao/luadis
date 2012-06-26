@@ -1,5 +1,5 @@
 local bit = require "bit"
-
+local ir =  require "ir"
 --[[
 /*----------------------------------------------------------------------
 name			args	description
@@ -106,45 +106,46 @@ for v,k in ipairs(OPCODES) do
 end
 
 local A, B, C, Bx, sBx = 'A', 'B', 'C', 'Bx', 'sBx'
+local R, RK, Kst, V = ir.R, ir.RK, ir.Kst, ir.V
 local ARGS = {
-	{A, B},
-	{A, Bx},
-	{A, B, C},
-	{A, B},
-	{A, B},
-	{A, Bx},
-	{A, B, C},
-	{A, Bx},
-	{A, B},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B},
-	{A, B},
-	{A, B},
-	{A, B, C},
-	{sBx},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B, C},
-	{A, B},
-	{A, sBx},
-	{A, sBx},
-	{A, C},
-	{A, B, C},
-	{A},
-	{A, Bx},
-	{A, B}
+	{{A, R}, {B, R}}, --R(A) := R(B)
+	{{A, R}, {Bx, Kst}},     --R(A) := Kst(Bx)
+	{{A, R}, {B, V}, {C, V}}, --R(A) := (Bool)B; if (C) pc++
+	{{A, R}, {B, R}}, --R(A) := ... := R(B) := nil
+	{{A, R}, {B, V}}, --R(A) := UpValue[B]
+	{{A, R}, {Bx, Kst}}, --R(A) := Gbl[Kst(Bx)]
+	{{A, R}, {B, R}, {C, RK}}, --R(A) := R(B)[RK(C)]
+	{{A, R}, {Bx, Kst}}, --Gbl[Kst(Bx)] := R(A)
+	{{A, R}, {B, V}}, --UpValue[B] := R(A)
+	{{A, R}, {B, RK}, {C, RK}}, --R(A)[RK(B)] := RK(C)
+	{{A, R}, {B, V}, {C, V}}, --R(A) := {} (size = B,C)
+	{{A, R}, {B, RK}, {C, RK}}, --R(A) := RK(B) + RK(C)
+	{{A, R}, {B, RK}, {C, RK}},
+	{{A, R}, {B, RK}, {C, RK}},
+	{{A, R}, {B, RK}, {C, RK}},
+	{{A, R}, {B, RK}, {C, RK}},
+	{{A, R}, {B, RK}, {C, RK}},
+	{{A, R}, {B, RK}, {C, RK}},
+	{{A, R}, {B, R}}, --R(A) := -R(B)
+	{{A, R}, {B, R}},
+	{{A, R}, {B, R}}, --R(A) := length of R(B)
+	{{A, R}, {B, R}, {C, R}}, --R(A) := R(B).. ... ..R(C)
+	{{sBx, V}}, --pc+=sBx
+	{{A, V}, {B, RK}, {C, RK}}, --if ((RK(B) == RK(C)) ~= A) then pc++
+	{{A, V}, {B, RK}, {C, RK}},
+	{{A, V}, {B, RK}, {C, RK}},
+	{{A, R}, {C, V}}, --if not (R(A) <=> C) then pc++
+	{{A, R}, {B, R}, {C, V}}, --if (R(B) <=> C) then R(A) := R(B) else pc++
+	{{A, R}, {B, R}, {C, R}}, --R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
+	{{A, R}, {B, R}, {C, function() return V(0) end}}, --return R(A)(R(A+1), ... ,R(A+B-1))
+	{{A, R}, {B, R}}, --return R(A), ... ,R(A+B-2)(see note)
+	{{A, R}, {sBx, V}}, --R(A)+=R(A+2)
+	{{A, R}, {sBx, V}},
+	{{A, R}, {C, R}}, --R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
+	{{A, R}, {B, V}, {C, V}},
+	{{A, R}},
+	{{A, R}, {Bx, V}},
+	{{A, R}, {B, R}}
 }
 
 local OPMT = {__tostring = function(self)
@@ -154,7 +155,7 @@ local OPMT = {__tostring = function(self)
 			if v == "sBx" and self.to then
 				table.insert(r2,string.format("to=%s",self.to))
 			elseif self[v] then
-				table.insert(r2,string.format("%s=%s",v,self[v]))
+				table.insert(r2,string.format("%s=%s",v,tostring(self[v])))
 			end
 		end
 		return string.format("%s(%s)",self.op, table.concat(r2, ', '))
@@ -171,7 +172,7 @@ local function instruction(int)
 	local this = {A = A, B = B, C = C, Bx = Bx, sBx = sBx}
 	local inst = setmetatable({op = OPCODES[op]}, OPMT)
 	for _,v in ipairs(ARGS[op]) do
-		inst[v] = this[v]
+		inst[v[1]] = v[2](this[v[1]])
 	end
 	
 	return inst

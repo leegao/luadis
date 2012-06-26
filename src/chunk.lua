@@ -15,7 +15,6 @@ end
 
 local function generic_list(ctx, f)
 	local n = ctx:int()
-	print(n)
 	local ret = {}
 	for i=1,n do
 		table.insert(ret, f(ctx))
@@ -25,7 +24,6 @@ end
 
 local function constant(ctx)
 	local type = ctx:byte()
-	print(type)
 	if type == 0 then
 		return nil
 	elseif type == 1 then

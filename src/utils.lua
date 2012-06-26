@@ -5,7 +5,7 @@ function utils.copy(t)
 	local seen = {} -- for circular references
 	local function _copy(t, tab)
 		for k,v in pairs(t) do
-			if type(v) == "table" then
+			if type(v) == "table" and not v.r and not v.k and not v.v then
 				if not seen[v] then 
 					seen[v] = {}
 					_copy(v, seen[v])

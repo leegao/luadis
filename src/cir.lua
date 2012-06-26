@@ -37,9 +37,9 @@ function cir.add_label(func)
 			table.insert(jump_target, pc+2)
 			op.to = pc+2
 		elseif utils.find({"JMP", "FORLOOP"}, op.op) then
-			table.insert(jump_target, pc+1+op.sBx)
-			op.to = pc+1+op.sBx
-		elseif op.op == "LOADBOOL" and op.C ~= 0 then
+			table.insert(jump_target, pc+1+op.sBx.v)
+			op.to = pc+1+op.sBx.v
+		elseif op.op == "LOADBOOL" and op.C.v ~= 0 then
 			table.insert(jump_target, pc+2)
 			op.to = pc+2
 		elseif op.op == "TFORLOOP" then
@@ -175,5 +175,9 @@ local cfg = require "cfg"
 local root = cfg.cfg(func)
 
 print(root:dot())
+
+local liveness = require "dataflow.liveness"
+
+--liveness.annotate(root)
 
 return cir
