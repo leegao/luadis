@@ -13,7 +13,7 @@ end
 --                 LIVE_OUT[x] = \Union_{p \in succ(x)} LIVE_IN[p]
 -- GEN (use) and KILL (def) should be simple, but the addition of escaped variables (upvalues) and CLOSE makes this a tad bit more difficult
 
-function liveness.gen(cfg)
+function liveness.gen(cfg, tos)
 	local op = cfg.ir
 	if op.op == "MOVE" then
 		-- OP_MOVE,/*	    A B		R(A) := R(B)					*/
@@ -55,6 +55,13 @@ function liveness.gen(cfg)
 		for i=op.A.r,op.A.r+op.B.v-1 do
 			table.insert(ret, ir.R(i))
 		end
+		
+		if op.B.v == 0 then
+			for i=op.A.r,tos do
+				table.insert(ret, ir.R(i))
+			end
+		end
+		
 		return ret
 	elseif op.op == "RETURN" then
 		-- OP_RETURN,/*	A B		return R(A), ... ,R(A+B-2)	(see note)	*/
@@ -64,7 +71,7 @@ function liveness.gen(cfg)
 		end
 		
 		if op.B.v == 0 then
-			for i=op.A.r,256 do
+			for i=op.A.r,tos do
 				table.insert(ret, ir.R(i))
 			end
 		end
@@ -100,7 +107,38 @@ function liveness.kill(cfg)
 			table.insert(ret, ir.R(i))
 		end
 		return ret
-	elseif utils.find({'SETGLOBAL', 'SETUPVAL', 'SETTABLE','JMP', 'EQ', 'LT', 'LE', 'TEST', 'CLOSE'}, op.op) then
+	elseif op.op == "SELF" then
+		return {op.A, ir.R(op.A.r+1)}
+	elseif op.op == "CALL" then
+		local ret = {}
+		for i=op.A.r,op.A.r+op.C.v-2 do
+			table.insert(ret, ir.R(i))
+		end
+		
+		if op.C.v == 0 then
+			for i=op.A.r,tos do
+				table.insert(ret, ir.R(i))
+			end
+		end
+		
+		return ret
+	elseif op.op == "FORLOOP" then
+		return {op.A, ir.R(op.A.r+3)}
+	elseif op.op == "TFORLOOP" then
+		local ret = {}
+		for i=op.A.r,op.A.r+op.C.v+2 do
+			table.insert(ret, ir.R(i))
+		end
+		
+		return ret
+	elseif op.op == "VARARG" then
+		local ret = {}
+		for i=op.A.r,op.A.r+op.B.v-1 do
+			table.insert(ret, ir.R(i))
+		end
+		
+		return ret
+	elseif utils.find({'SETGLOBAL', 'SETUPVAL', 'SETTABLE','JMP', 'EQ', 'LT', 'LE', 'TEST', 'CLOSE', 'TAILCALL', 'RETURN', 'SETLIST'}, op.op) then
 		return {}
 	end
 	return {op.A}
