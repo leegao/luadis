@@ -136,16 +136,16 @@ local ARGS = {
 	{{A, V}, {B, RK}, {C, RK}},
 	{{A, R}, {C, V}}, --if not (R(A) <=> C) then pc++
 	{{A, R}, {B, R}, {C, V}}, --if (R(B) <=> C) then R(A) := R(B) else pc++
-	{{A, R}, {B, R}, {C, R}}, --R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
+	{{A, R}, {B, V}, {C, V}}, --R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
 	{{A, R}, {B, R}, {C, function() return V(0) end}}, --return R(A)(R(A+1), ... ,R(A+B-1))
-	{{A, R}, {B, R}}, --return R(A), ... ,R(A+B-2)(see note)
+	{{A, R}, {B, V}}, --return R(A), ... ,R(A+B-2)(see note)
 	{{A, R}, {sBx, V}}, --R(A)+=R(A+2)
 	{{A, R}, {sBx, V}},
-	{{A, R}, {C, R}}, --R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
+	{{A, R}, {C, V}}, --R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
 	{{A, R}, {B, V}, {C, V}},
 	{{A, R}},
 	{{A, R}, {Bx, V}},
-	{{A, R}, {B, R}}
+	{{A, R}, {B, v}}
 }
 
 local OPMT = {__tostring = function(self)

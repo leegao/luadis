@@ -52,7 +52,9 @@ local function func(ctx)
 	local protos       = generic_list(ctx, func)
 	
 	local line_num     = generic_list(ctx, reader.int)
-	local locals       = generic_list(ctx, function(ctx) return {ctx:string(), ctx:int(), ctx:int()} end)
+	local locals       = generic_list(ctx, function(ctx) return setmetatable({ctx:string(), ctx:int(), ctx:int()}, 
+							{__tostring = function(self) return self[1] end, 
+							__eq = function(self, other) return tostring(self) == tostring(other) end}) end)
 	local upvalues     = generic_list(ctx, reader.string)
 	
 	return {

@@ -21,7 +21,15 @@ ir.Registers = {}
 
 function ir.R(r)
 	if ir.Registers[r] then return ir.Registers[r] end
-	local register = setmetatable({r=r}, {__tostring = function(self) return "R("..r..")" end})
+	local register = setmetatable({r=r}, {__tostring = function(self) 
+		if ir.func then 
+			local name = ir.func.locals[r+1]
+			if name and tostring(name):byte(1) ~= 40 then
+				return 'r('..tostring(name)..')'
+			end
+		end 
+		return "r("..r..")" 
+	end})
 	ir.Registers[r] = register
 	return register
 end
@@ -30,7 +38,13 @@ ir.Constants = {}
 
 function ir.Kst(r)
 	if ir.Constants[r] then return ir.Constants[r] end
-	local register = setmetatable({k=r}, {__tostring = function(self) return "Kst("..r..")" end})
+	local register = setmetatable({k=r}, {__tostring = function(self) 
+		if not ir.func then 
+			return "Kst("..r..")" 
+		else 
+			return ''..tostring(ir.func.constants[r+1])..''
+		end 
+	end})
 	ir.Constants[r] = register
 	return register
 end
@@ -47,7 +61,7 @@ ir.Values = {}
 
 function ir.V(r)
 	if ir.Values[r] then return ir.Values[r] end
-	local register = setmetatable({v=r}, {__tostring = function(self) return "V("..r..")" end})
+	local register = setmetatable({v=r}, {__tostring = function(self) return "v("..r..")" end})
 	ir.Values[r] = register
 	return register 
 end

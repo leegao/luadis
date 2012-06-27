@@ -115,7 +115,7 @@ function cir.replace_loadbool(funcs)
 	local instructions = {}
 	for pc,op in ipairs(cfuncs.instructions) do
 		table.insert(instructions, op)
-		if op.op == "LOADBOOL" and op.C ~= 0 then
+		if op.op == "LOADBOOL" and op.C.v ~= 0 then
 			local jmp = setmetatable({op = "JMP"}, opcode.OPMT)
 			jmp.to = op.to
 			op.to = nil
@@ -160,7 +160,7 @@ end
 chunk = require "chunk"
 reader = require "reader"
 
-local ctx = reader.new_ctx(string.dump(cir.replace_arith))
+local ctx = reader.new_ctx(string.dump(loadfile 'test.lua'))
 chunk.header(ctx)
 local func = chunk.func(ctx)
 
@@ -169,6 +169,11 @@ func = cir.add_label(func)
 func = cir.add_cjumps(func)
 func = cir.replace_loadbool(func)
 func = cir.replace_arith(func)
+ir.func = func
+
+for pc,op in ipairs(func.instructions) do
+	--print(pc, op)
+end
 
 local cfg = require "cfg"
 

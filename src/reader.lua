@@ -17,7 +17,7 @@ local function string(str, i)
 	if size == 0 then
 		return nil, i
 	end
-	local str = str:sub(i, i+size-1)
+	local str = str:sub(i, i+size-2)
 	return str, i+size
 end
 
