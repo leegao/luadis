@@ -11,7 +11,7 @@ end
 -- Live variable analysis
 -- Basic Equation: LIVE_IN[x] = GEN(x) U (LIVE_OUT[x] - KILL(x))
 --                 LIVE_OUT[x] = \Union_{p \in succ(x)} LIVE_IN[p]
--- GEN (use) and KILL (def) should be simple, but the addition of escaped variables (upvalues) and CLOSE makes this a tad bit more difficult
+
 
 function liveness.gen(cfg, tos)
 	local op = cfg.ir
@@ -99,7 +99,7 @@ function liveness.gen(cfg, tos)
 	return {}
 end
 
-function liveness.kill(cfg)
+function liveness.kill(cfg, tos)
 	local op = cfg.ir
 	if op.op == "LOADNIL" then
 		local ret = {}
@@ -142,6 +142,70 @@ function liveness.kill(cfg)
 		return {}
 	end
 	return {op.A}
+end
+
+function liveness.analyze(cfg, func_env)
+	local tos = (func_env and func_env.stack_size) or 256
+	local queue, seen = {}, {}
+	local function build_queue(node)
+		if seen[node] then return end
+		seen[node] = true
+		table.insert(queue, node)
+		node.annotations.gen = liveness.gen(node, tos)
+		node.annotations.kill = liveness.kill(node, tos)
+		node.annotations.live_in = {}
+		if node.child1 then
+			build_queue(node.child1)
+		end
+		
+		if node.child2 then
+			build_queue(node.child2)
+		end
+	end
+	build_queue(cfg)
+	while #queue > 0 do
+		local node = queue[1]
+		table.remove(queue, 1)
+		
+		local live_in = node.annotations.live_in
+		local card = #live_in
+		
+		local live_out = {}
+		for _,p in ipairs(node:succ()) do
+			live_out = utils.union(live_out, p.annotations.live_in)
+		end
+		
+		local rhs = utils.difference(live_out, node.annotations.kill)
+		live_in = utils.union(rhs, node.annotations.gen)
+		
+		-- check for changes
+		if #live_in ~= card then
+			node.annotations.live_in = live_in
+			for _,parent in ipairs(node:pred()) do
+				if not utils.find(queue, parent) then
+					table.insert(queue, parent)
+				end
+			end
+		end
+	end
+	
+	seen = {}
+	local function postprocess(cfg)
+		if seen[cfg] then return end
+		seen[cfg] = true
+		local live_out = {}
+		for _,p in ipairs(cfg:succ()) do
+			live_out = utils.union(live_out, p.annotations.live_in)
+		end
+		cfg.annotations.live_out = live_out
+		if cfg.child1 then
+			postprocess(cfg.child1)
+		end
+		
+		if cfg.child2 then
+			postprocess(cfg.child2)
+		end
+	end
 end
 
 return liveness

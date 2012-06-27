@@ -160,7 +160,7 @@ end
 chunk = require "chunk"
 reader = require "reader"
 
-local ctx = reader.new_ctx(string.dump(loadfile 'test.lua'))
+local ctx = reader.new_ctx(string.dump(function() local a = 1; a = a + 3; return a end))
 chunk.header(ctx)
 local func = chunk.func(ctx)
 
@@ -179,10 +179,11 @@ local cfg = require "cfg"
 
 local root = cfg.cfg(func)
 
-print(root:dot())
-
 local liveness = require "dataflow.liveness"
 
---liveness.annotate(root)
+liveness.analyze(root)
+
+print(root:dot())
+
 
 return cir

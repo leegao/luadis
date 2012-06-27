@@ -39,4 +39,28 @@ function utils.filter(t, f)
 	return t2
 end
 
+function utils.union(a, b)
+	--a = {unpack(a)}
+	for _,b_ in ipairs(b) do
+		if not utils.find(b_, a) then table.insert(a, b_) end
+	end
+	return a
+end
+
+function utils.intersection(a, b)
+	local ret = {}
+	for _,b_ in ipairs(b) do
+		if utils.find(b_,a) then table.insert(ret, b_) end
+	end
+	return ret
+end
+
+function utils.difference(a, b)
+	local ret = {}
+	for _,a_ in ipairs(a) do
+		if not utils.find(a_,b) then table.insert(ret, a_) end
+	end
+	return ret
+end
+
 return utils
