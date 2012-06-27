@@ -160,7 +160,7 @@ end
 chunk = require "chunk"
 reader = require "reader"
 
-local ctx = reader.new_ctx(string.dump(function() local a = 1; a = a + 3; return a end))
+local ctx = reader.new_ctx(string.dump(cir.replace_arith))
 chunk.header(ctx)
 local func = chunk.func(ctx)
 

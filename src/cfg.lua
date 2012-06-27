@@ -34,17 +34,18 @@ function cfg_mt:_dot(seen)
 		str = str .. "\tstart -> n" .. self.id .. "\n"
 	end
 	
-	local out = ""
-	if self.annotations.live_out then
-		for _,live in ipairs(self.annotations.live_out) do
-			out = out .. tostring(live) .. ', '
-		end
-	end
+	
 	
 	
 	str = str .. "\t" .. "n"..self.id.." [label=\"" .. tostring(self.ir) .. "\"]\n"
 	
 	for _,child in ipairs(self:succ())  do
+		local out = ""
+		if self.annotations.live_out then
+			for _,live in ipairs(utils.intersection(self.annotations.live_out, child.annotations.live_in)) do
+				out = out .. tostring(live) .. ', '
+			end
+		end
 		str = str .. "\tn"..self.id.." -> n"..child.id.."[label=\"".. out .. "\"]\n"
 	end
 	

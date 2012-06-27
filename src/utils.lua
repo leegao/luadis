@@ -39,28 +39,36 @@ function utils.filter(t, f)
 	return t2
 end
 
+function utils.set(t)
+	local s = {}
+	for _,v in ipairs(t) do s[v] = true end
+	t = {}
+	for k,_ in pairs(s) do table.insert(t, k) end
+	return t
+end
+
 function utils.union(a, b)
-	--a = {unpack(a)}
+	a = {unpack(a)}
 	for _,b_ in ipairs(b) do
-		if not utils.find(b_, a) then table.insert(a, b_) end
+		if not utils.find(a, b_) then table.insert(a, b_) end
 	end
-	return a
+	return utils.set(a)
 end
 
 function utils.intersection(a, b)
 	local ret = {}
 	for _,b_ in ipairs(b) do
-		if utils.find(b_,a) then table.insert(ret, b_) end
+		if utils.find(a, b_) then table.insert(ret, b_) end
 	end
-	return ret
+	return utils.set(ret)
 end
 
 function utils.difference(a, b)
 	local ret = {}
 	for _,a_ in ipairs(a) do
-		if not utils.find(a_,b) then table.insert(ret, a_) end
+		if not utils.find(b, a_) then table.insert(ret, a_) end
 	end
-	return ret
+	return utils.set(ret)
 end
 
 return utils

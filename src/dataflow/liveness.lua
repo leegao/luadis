@@ -20,7 +20,7 @@ function liveness.gen(cfg, tos)
 		return {op.B}
 	elseif op.op == "GETTABLE" then
 		-- OP_GETTABLE,/*	A B C	R(A) := R(B)[RK(C)]				*/
-		return {op.B, op.C}
+		return utils.filter({op.B, op.C}, r)
 	elseif op.op == "SETGLOBAL" or op.op == "SETUPVAL" then
 		-- OP_SETGLOBAL,/*	A Bx	Gbl[Kst(Bx)] := R(A)				*/
 		return {op.A}
@@ -152,7 +152,10 @@ function liveness.analyze(cfg, func_env)
 		seen[node] = true
 		table.insert(queue, node)
 		node.annotations.gen = liveness.gen(node, tos)
+		
 		node.annotations.kill = liveness.kill(node, tos)
+		--print(node.ir, unpack(node.annotations.gen))
+		--print("\tkill", unpack(node.annotations.kill))
 		node.annotations.live_in = {}
 		if node.child1 then
 			build_queue(node.child1)
@@ -177,6 +180,11 @@ function liveness.analyze(cfg, func_env)
 		
 		local rhs = utils.difference(live_out, node.annotations.kill)
 		live_in = utils.union(rhs, node.annotations.gen)
+		
+		print(node.ir, #live_in, card, unpack(live_in))
+		print("\tgen:  ",unpack(node.annotations.gen))
+		print("\tout:  ",unpack(live_out))
+		print("\tkill: ",unpack(node.annotations.kill))
 		
 		-- check for changes
 		if #live_in ~= card then
@@ -206,6 +214,7 @@ function liveness.analyze(cfg, func_env)
 			postprocess(cfg.child2)
 		end
 	end
+	postprocess(cfg)
 end
 
 return liveness
