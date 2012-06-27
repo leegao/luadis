@@ -1,3 +1,6 @@
-local a
+local a,b
 
-a = f(a)
+function f()
+	local b
+	print(a)
+end

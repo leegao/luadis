@@ -103,7 +103,7 @@ function cir.add_cjumps(funcs)
 	end
 	cfuncs.instructions = instructions
 	for _,f in ipairs(funcs.funcs) do
-		cfuncs.funcs[_] = cir.cjumps(f)
+		cfuncs.funcs[_] = cir.add_cjumps(f)
 	end
 	
 	return cfuncs
@@ -157,10 +157,51 @@ function cir.replace_arith(func)
 	return func_copy
 end
 
+function cir.closure(func)
+	local func_copy = utils.copy(func)
+	func_copy.closed_locals = {}
+
+	local instructions = {}
+
+	-- Rule: Closure R(A) Bx:n; (move/setup){n} -> Closure R(A) Bx:n (move/setup){n}
+	local nbreaks = 0
+	for pc,op in ipairs(func_copy.instructions) do
+		if nbreaks > 0 then
+			nbreaks = nbreaks - 1
+		else
+			if op.op == 'CLOSURE' then
+				local child = func_copy.funcs[op.Bx.v+1]
+				local n = child.nups
+				nbreaks = n
+				op.up_ops = {}
+				for i=pc+1,pc+n do
+					local up_op = func_copy.instructions[i]
+					table.insert(op.up_ops, up_op)
+					if up_op.op == "MOVE" then
+						table.insert(func_copy.closed_locals, up_op.B)
+					end
+				end
+			end
+			table.insert(instructions, op)
+		end
+		
+	end
+
+	func_copy.instructions = instructions
+
+	for i,v in ipairs(func_copy.funcs) do
+		func_copy.funcs = cir.closure(v)
+	end
+
+	return func_copy
+end
+
 chunk = require "chunk"
 reader = require "reader"
+local liveness = require "dataflow.liveness"
+local cfg = require "cfg"
 
-local ctx = reader.new_ctx(string.dump(cir.replace_arith))
+local ctx = reader.new_ctx(string.dump(loadfile "test.lua"))
 chunk.header(ctx)
 local func = chunk.func(ctx)
 
@@ -169,21 +210,22 @@ func = cir.add_label(func)
 func = cir.add_cjumps(func)
 func = cir.replace_loadbool(func)
 func = cir.replace_arith(func)
+func = cir.closure(func)
 ir.func = func
 
 for pc,op in ipairs(func.instructions) do
-	--print(pc, op)
+	print(pc, op)
 end
 
-local cfg = require "cfg"
+
 
 local root = cfg.cfg(func)
 
-local liveness = require "dataflow.liveness"
+
 
 liveness.analyze(root)
 
-print(root:dot())
+print('\n'..root:dot())
 
 
 return cir

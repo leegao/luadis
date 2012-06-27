@@ -154,8 +154,8 @@ function liveness.analyze(cfg, func_env)
 		node.annotations.gen = liveness.gen(node, tos)
 		
 		node.annotations.kill = liveness.kill(node, tos)
-		--print(node.ir, unpack(node.annotations.gen))
-		--print("\tkill", unpack(node.annotations.kill))
+		-- print(node.ir, unpack(node.annotations.gen))
+		-- print("\tkill", unpack(node.annotations.kill))
 		node.annotations.live_in = {}
 		if node.child1 then
 			build_queue(node.child1)
@@ -181,10 +181,10 @@ function liveness.analyze(cfg, func_env)
 		local rhs = utils.difference(live_out, node.annotations.kill)
 		live_in = utils.union(rhs, node.annotations.gen)
 		
-		print(node.ir, #live_in, card, unpack(live_in))
-		print("\tgen:  ",unpack(node.annotations.gen))
-		print("\tout:  ",unpack(live_out))
-		print("\tkill: ",unpack(node.annotations.kill))
+		-- print(node.ir, #live_in, card, unpack(live_in))
+		-- print("\tgen:  ",unpack(node.annotations.gen))
+		-- print("\tout:  ",unpack(live_out))
+		-- print("\tkill: ",unpack(node.annotations.kill))
 		
 		-- check for changes
 		if #live_in ~= card then

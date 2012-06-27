@@ -13,7 +13,8 @@ function CFG.new(ir, closure)
 	cfg.id = CFG.id
 	CFG.id = CFG.id + 1
 	cfg.closure = closure
-	cfg.annotations = {}
+	ir.annotations = ir.annotations or {}
+	cfg.annotations = ir.annotations
 	return cfg
 end
 
