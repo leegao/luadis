@@ -29,4 +29,14 @@ function utils.find(t, v)
 	end
 end
 
+function utils.filter(t, f)
+	local t2 = {}
+	for i,v in ipairs(t) do
+		if f(v) then
+			table.insert(t2, v)
+		end
+	end
+	return t2
+end
+
 return utils

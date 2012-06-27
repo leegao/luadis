@@ -1,3 +1,3 @@
-a = a == b or a
+local a
 
-
+a = f(a)
